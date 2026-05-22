@@ -2,6 +2,34 @@
 
 A sanitised, single-command clone of [xinzuo.com.au](https://xinzuo.com.au) running on your **own** free Shopify dev store: real Liquid theme, ~50 sample products (the ones the homepage actually references, plus backfill), 68 collections, 17 pages, 5 articles, and 162 optimised images. Your 2-hour timed window starts when you tick the commit gate on the [hiring portal](https://apply.toldyouicoulddoit.com). Setup below does **not** count against the timer — do it ahead of time.
 
+---
+
+## MY SUBMISSION — Bundle Builder Fix
+
+### The Fix
+Fixed the Bundle Builder page (`/pages/bundle-builder`) which was showing an empty state despite the complete UI structure existing.
+
+**Root Cause**: The series collections (e.g., `xinzuo-mo-series-knives`, `hezhen-supreme-series-knives`) configured in the theme had no products assigned during seeding.
+
+**Solution**: Added fallback logic in `sections/bundle-builder.liquid`:
+1. First tries to use series collections (original behavior)
+2. Falls back to `all-products` collection when series collections are empty
+3. Determines series membership from product handle keywords when using fallback
+
+### Files Changed
+- `sections/bundle-builder.liquid` - Added collection fallback and series detection
+
+### Screenshots
+- `before.png` - Empty Bundle Builder page
+- `after.png` - Products displaying correctly
+
+### Loom Walkthrough
+[Video walkthrough](https://www.loom.com/share/placeholder) - Max 3 minutes
+
+---
+
+*Original README continues below...*
+
 **Measured script time: under 5 minutes** (plus 10–15 min for first-time Shopify Partners signup if you've never used it — that part is one-time).
 
 ---
