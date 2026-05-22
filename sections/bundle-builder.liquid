@@ -133,32 +133,37 @@
       {%- assign seen_product_ids = "," -%}
       {%- assign has_products = false -%}
 
-      {%- comment -%} Pre-scan to check if any products exist {%- endcomment -%}
+      {%- comment -%} Pre-scan: check if series collections have products {%- endcomment -%}
+      {%- assign use_series_collections = false -%}
       {%- for block in series_blocks -%}
         {%- if block.settings.collection != blank and block.settings.collection.products.size > 0 -%}
           {%- assign has_products = true -%}
+          {%- assign use_series_collections = true -%}
           {%- break -%}
         {%- endif -%}
       {%- endfor -%}
 
+      {%- comment -%} Fallback: if series collections are empty, use all-products collection {%- endcomment -%}
+      {%- if use_series_collections == false -%}
+        {%- if collections['all-products'] != blank and collections['all-products'].products.size > 0 -%}
+          {%- assign has_products = true -%}
+        {%- endif -%}
+      {%- endif -%}
+
       {%- if has_products -%}
         <div class="bundle-builder__grid" ref="grid">
           {%- assign global_index = 0 -%}
-          {%- for block in series_blocks -%}
-            {%- assign coll = block.settings.collection -%}
-            {%- if coll != blank -%}
-              {%- for product in coll.products -%}
-                {%- unless product.tags contains 'engraving-fee' -%}
-                  {%- comment -%} Skip sold-out products {%- endcomment -%}
-                  {%- unless product.available -%}
-                    {%- continue -%}
-                  {%- endunless -%}
 
-                  {%- comment -%} Deduplication check {%- endcomment -%}
-                  {%- assign pid_check = "," | append: product.id | append: "," -%}
-                  {%- if seen_product_ids contains pid_check -%}
-                    {%- continue -%}
-                  {%- endif -%}
+          {%- if use_series_collections -%}
+            {%- comment -%} Use series collections with deduplication {%- endcomment -%}
+            {%- for block in series_blocks -%}
+              {%- assign coll = block.settings.collection -%}
+              {%- if coll != blank -%}
+                {%- for product in coll.products -%}
+                  {%- unless product.tags contains 'engraving-fee' -%}
+                    {%- unless product.available == false -%}
+                      {%- assign pid_check = "," | append: product.id | append: "," -%}
+                      {%- unless seen_product_ids contains pid_check -%}
 
                   {%- comment -%} Build series membership from product.collections {%- endcomment -%}
                   {%- assign product_series = "" -%}
@@ -242,12 +247,193 @@
                     </div>
                   </div>
 
-                  {%- comment -%} Mark this product as rendered {%- endcomment -%}
-                  {%- assign seen_product_ids = seen_product_ids | append: product.id | append: "," -%}
-                {%- endunless -%}
+                      {%- assign seen_product_ids = seen_product_ids | append: product.id | append: "," -%}
+                      {%- endunless -%}
+                    {%- endunless -%}
+                  {%- endfor -%}
+                {%- endif -%}
+              {%- endfor -%}
+
+          {%- else -%}
+            {%- comment -%} Fallback: use all-products collection, determine series from product handle {%- endcomment -%}
+            {%- for product in collections['all-products'].products -%}
+              {%- unless product.tags contains 'engraving-fee' -%}
+                {%- unless product.available == false -%}
+                  {%- assign pid_check = "," | append: product.id | append: "," -%}
+                  {%- unless seen_product_ids contains pid_check -%}
+
+                  {%- comment -%} Determine series membership from product handle keywords {%- endcomment -%}
+                  {%- assign product_series = "" -%}
+                  {%- assign handle_lower = product.handle | downcase -%}
+
+                  {%- for block in series_blocks -%}
+                    {%- if block.settings.collection != blank -%}
+                      {%- assign series_handle = block.settings.collection.handle -%}
+                      {%- assign matched = false -%}
+
+                      {%- comment -%} Match by collection membership {%- endcomment -%}
+                      {%- for pc in product.collections -%}
+                        {%- if pc.handle == series_handle -%}
+                          {%- assign matched = true -%}
+                          {%- break -%}
+                        {%- endif -%}
+                      {%- endfor -%}
+
+                      {%- comment -%} Match by handle keywords for common series {%- endcomment -%}
+                      {%- unless matched -%}
+                        {%- if series_handle contains 'mo' or series_handle contains 'xinzuo-mo' -%}
+                          {%- if handle_lower contains 'mo-series' or handle_lower contains 'x06' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'supreme' -%}
+                          {%- if handle_lower contains 'supreme' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'lan' or series_handle contains 'xinzuo-lan' -%}
+                          {%- if handle_lower contains 'lan-series' or handle_lower contains 'xinzuo-lan' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'retro' -%}
+                          {%- if handle_lower contains 'retro' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'zhen' or series_handle contains 'x05z' -%}
+                          {%- if handle_lower contains 'x05z' or handle_lower contains 'zhen' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'pm8m' -%}
+                          {%- if handle_lower contains 'pm8m' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'pm8o' -%}
+                          {%- if handle_lower contains 'pm8o' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'elegant' or series_handle contains 'b38l' -%}
+                          {%- if handle_lower contains 'elegant' or handle_lower contains 'b38l' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'yu' or series_handle contains 'b13r' -%}
+                          {%- if handle_lower contains 'b13r-yu' or handle_lower contains 'b13r' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'yi' or series_handle contains 'b27' -%}
+                          {%- if handle_lower contains 'b27-yi' or handle_lower contains 'b27' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'master' or series_handle contains 'b30' -%}
+                          {%- if handle_lower contains 'b30' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'ji' or series_handle contains 'x08' -%}
+                          {%- if handle_lower contains 'x08' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                        {%- if series_handle contains 'pin' or series_handle contains 'x020' -%}
+                          {%- if handle_lower contains 'x020' -%}
+                            {%- assign matched = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                      {%- endunless -%}
+
+                      {%- if matched -%}
+                        {%- if product_series == "" -%}
+                          {%- assign product_series = series_handle -%}
+                        {%- else -%}
+                          {%- assign product_series = product_series | append: " " | append: series_handle -%}
+                        {%- endif -%}
+                      {%- endif -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+
+                  {%- assign variant = product.selected_or_first_available_variant -%}
+                  {%- assign global_index = global_index | plus: 1 -%}
+                  <div
+                    class="bundle-card"
+                    ref="cards[]"
+                    role="button"
+                    tabindex="0"
+                    aria-pressed="false"
+                    data-product-id="{{ product.id }}"
+                    data-variant-id="{{ variant.id }}"
+                    data-price="{{ variant.price }}"
+                    data-compare-price="{{ variant.compare_at_price | default: variant.price }}"
+                    data-available="{{ product.available }}"
+                    data-title="{{ product.title | escape }}"
+                    data-image="{{ product.featured_image | image_url: width: 100 }}"
+                    data-series="{{ product_series }}"
+                    on:click="/handleCardClick"
+                  >
+                    {%- comment -%} Checkbox Overlay {%- endcomment -%}
+                    <div class="bundle-card__checkbox">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+
+                    {%- comment -%} Product Image {%- endcomment -%}
+                    <div class="bundle-card__image">
+                      {%- if product.featured_image != blank -%}
+                        {%- liquid
+                          assign img_loading = 'lazy'
+                          assign img_priority = 'auto'
+                          if global_index <= 8
+                            assign img_loading = 'eager'
+                            assign img_priority = 'high'
+                          endif
+                        -%}
+                        <img
+                          srcset="{{ product.featured_image | image_url: width: 300 }} 300w, {{ product.featured_image | image_url: width: 500 }} 500w, {{ product.featured_image | image_url: width: 700 }} 700w"
+                          sizes="(max-width: 500px) 50vw, (max-width: 750px) 50vw, (max-width: 1300px) 33vw, 25vw"
+                          src="{{ product.featured_image | image_url: width: 500 }}"
+                          width="500"
+                          height="500"
+                          alt="{{ product.title | escape }}"
+                          loading="{{ img_loading }}"
+                          fetchpriority="{{ img_priority }}"
+                          decoding="async"
+                        >
+                      {%- endif -%}
+
+                      {%- if product.compare_at_price and product.compare_at_price > product.price -%}
+                        {%- assign discount = product.compare_at_price | minus: product.price -%}
+                        {%- assign percent = discount | times: 100 | divided_by: product.compare_at_price -%}
+                        <span class="bundle-card__badge">{{ percent }}% OFF</span>
+                      {%- endif -%}
+                    </div>
+
+                    {%- comment -%} Product Info {%- endcomment -%}
+                    <div class="bundle-card__info">
+                      <h3 class="bundle-card__title">{{ product.title }}</h3>
+                      <div class="bundle-card__price">
+                        <span class="bundle-card__current-price">{{ variant.price | money }}</span>
+                        {%- if variant.compare_at_price and variant.compare_at_price > variant.price -%}
+                          <span class="bundle-card__compare-price">{{ variant.compare_at_price | money }}</span>
+                        {%- endif -%}
+                      </div>
+                    </div>
+                  </div>
+
+                      {%- assign seen_product_ids = seen_product_ids | append: product.id | append: "," -%}
+                      {%- endunless -%}
+                    {%- endunless -%}
+                  {%- endfor -%}
+                {%- endif -%}
               {%- endfor -%}
             {%- endif -%}
-          {%- endfor -%}
+          {%- endif -%}
         </div>
       {%- else -%}
         <div class="bundle-builder__empty" style="text-align: center; padding: 60px 20px; color: #c9c9cc; font-family: 'Albert Sans', sans-serif; font-size: 18px;">
