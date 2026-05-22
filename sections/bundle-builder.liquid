@@ -95,6 +95,7 @@
               data-series="all"
               on:click="/handleTabClick/all"
               aria-pressed="true"
+              aria-label="Show all products"
             >
               All
             </button>
@@ -151,7 +152,7 @@
       {%- endif -%}
 
       {%- if has_products -%}
-        <div class="bundle-builder__grid" ref="grid">
+        <div class="bundle-builder__grid" ref="grid" role="list" aria-label="Product selection grid">
           {%- assign global_index = 0 -%}
 
           {%- if use_series_collections -%}
